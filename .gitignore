@@ -1,0 +1,5 @@
+/.vscode
+/Dockerfile
+/checker
+/docker-compose.yml
+/run_with_docker.sh
