@@ -8,6 +8,7 @@
 #include <cassert>
 #include <pthread.h>
 #include "utils.h"
+#include <mpi.h>
 
 using namespace std;
 

@@ -40,11 +40,26 @@ read_file(const int& rank)
 
 
 void send_data_to_tracker(const int& rank,
-						  const unordered_set<filename>& desired_files,
 						  const unordered_map<filename, vector<segment>>& owned_filenames_segments)
 {
+	int num_owned_files = owned_filenames_segments.size();
+	MPI_Send(&num_owned_files, 1, MPI_INT, TRACKER_RANK, PEER_SEND_DATA_TAG, MPI_COMM_WORLD);
 	
-	
+	for (const auto& [filename, segments] : owned_filenames_segments) {
+		MPI_Send(filename.c_str(), filename.size(), MPI_CHAR, TRACKER_RANK, PEER_SEND_DATA_TAG, MPI_COMM_WORLD);
+		int num_segments = segments.size();
+		MPI_Send(&num_segments, 1, MPI_INT, TRACKER_RANK, PEER_SEND_DATA_TAG, MPI_COMM_WORLD);
+		for (const auto& segment : segments) {
+			MPI_Send(segment.c_str(), segment.size(), MPI_CHAR, TRACKER_RANK, PEER_SEND_DATA_TAG, MPI_COMM_WORLD);
+		}
+	}
+
+	cout << "Peer " << rank << " sent data to tracker. Now waiting for response...\n";
+
+	char tracker_responnse_msg[10];
+	MPI_Recv(tracker_responnse_msg, 10, MPI_CHAR, TRACKER_RANK, ACK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+	cout << "Peer " << rank << " received " << tracker_responnse_msg << " from tracker\n";
 }
 
 
@@ -71,7 +86,7 @@ void *upload_thread_func(void *arg)
 void peer(int numtasks, int rank) {
     cout << "Peer " << rank << "\n";
 	auto [desired_files, owned_filenames_segments] = read_file(rank);
-	send_data_to_tracker(rank, desired_files, owned_filenames_segments);
+	send_data_to_tracker(rank, owned_filenames_segments);
 
     pthread_t download_thread;
     pthread_t upload_thread;

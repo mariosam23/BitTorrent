@@ -8,6 +8,8 @@
 #define HASH_SIZE 32
 #define MAX_CHUNKS 100
 
+constexpr auto PEER_SEND_DATA_TAG = 1;
+constexpr auto ACK_TAG = 2;
 
 
 
