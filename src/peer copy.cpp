@@ -60,10 +60,10 @@ void send_data_to_tracker(const int& rank,
 
 	cout << "Peer " << rank << " sent data to tracker. Now waiting for response...\n";
 
-	char tracker_response_msg[4];
-	MPI_Bcast(tracker_response_msg, 4, MPI_CHAR, TRACKER_RANK, MPI_COMM_WORLD);
+	char tracker_responnse_msg[10];
+	MPI_Recv(tracker_responnse_msg, 10, MPI_CHAR, TRACKER_RANK, ACK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-	cout << "Peer " << rank << " received " << tracker_response_msg << " from tracker\n";
+	cout << "Peer " << rank << " received " << tracker_responnse_msg << " from tracker\n";
 }
 
 
@@ -72,18 +72,6 @@ void *download_thread_func(void *arg)
 	download_thread_args *args = (download_thread_args*) arg;
 	int rank = args->rank;
 	unordered_set<filename> desired_files = args->desired_files;
-
-	for (const auto& filename : desired_files) {
-		cout << "Peer " << rank << " downloading file " << filename << "\n";
-        
-		int request = SWARM_INFO_TAG;
-		MPI_Send(NULL, 0, MPI_CHAR, TRACKER_RANK, SWARM_INFO_TAG, MPI_COMM_WORLD);
-	
-		int num_segments;
-
-
-	}
-	
 
     return NULL;
 }
@@ -103,7 +91,7 @@ void peer(int numtasks, int rank) {
     cout << "Peer " << rank << "\n";
 	auto [desired_files, owned_filenames_segments] = read_file(rank);
 	send_data_to_tracker(rank, owned_filenames_segments);
-	
+
     pthread_t download_thread;
     pthread_t upload_thread;
     void *status;
