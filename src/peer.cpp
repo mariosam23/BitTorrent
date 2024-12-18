@@ -67,23 +67,50 @@ void send_data_to_tracker(const int& rank,
 }
 
 
+void receive_file_swarms_info(const int& rank, const unordered_set<filename>& desired_files)
+{
+	for (const auto& filename : desired_files) {
+		cout << "Peer " << rank << " downloading file " << filename << "\n";
+
+		// Send request to tracker for swarm info
+		int tag = SWARM_INFO_TAG;
+		MPI_Send(&tag, 1, MPI_INT, TRACKER_RANK, PEER_TO_TRACKER_MSG_TAG, MPI_COMM_WORLD);
+
+		// Receive swarm info from tracker
+		MPI_Send(filename.c_str(), MAX_FILENAME, MPI_CHAR, TRACKER_RANK, SWARM_INFO_TAG, MPI_COMM_WORLD);
+
+		int num_segments;
+		MPI_Recv(&num_segments, 1, MPI_INT, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		for (int i = 0; i < num_segments; ++i) {
+			char segment[HASH_SIZE];
+			MPI_Recv(segment, HASH_SIZE, MPI_CHAR, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			segment[HASH_SIZE] = '\0';
+
+			int num_clients;
+			MPI_Recv(&num_clients, 1, MPI_INT, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			for (int j = 0; j < num_clients; ++j) {
+				int client;
+				MPI_Recv(&client, 1, MPI_INT, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			}
+		}
+	}
+}
+
+
 void *download_thread_func(void *arg)
 {
 	download_thread_args *args = (download_thread_args*) arg;
 	int rank = args->rank;
 	unordered_set<filename> desired_files = args->desired_files;
 
-	for (const auto& filename : desired_files) {
-		cout << "Peer " << rank << " downloading file " << filename << "\n";
-        
-		int request = SWARM_INFO_TAG;
-		MPI_Send(NULL, 0, MPI_CHAR, TRACKER_RANK, SWARM_INFO_TAG, MPI_COMM_WORLD);
-	
-		int num_segments;
+	receive_file_swarms_info(rank, desired_files); 
 
+	int tag = PEER_FINISHED_ALL_DOWNLOADS_TAG;
+	MPI_Send(&tag, 1, MPI_INT, TRACKER_RANK, PEER_TO_TRACKER_MSG_TAG, MPI_COMM_WORLD);
 
-	}
-	
+	// MPI_Recv(&tag, 1, MPI_INT, TRACKER_RANK, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
 
     return NULL;
 }
