@@ -15,20 +15,12 @@
 using namespace std;
 
 
-enum ClientRole {
-	PEER,
-	SEED
-};
 
-
-struct segment_data {
-    string hash;
-    unordered_map<int, ClientRole> clients;
-};
 
 
 struct file_swarms_info {
-	unordered_map<string, vector<segment_data>> file_segments;
+	unordered_map<string, vector<string>> file_hashes;
+    unordered_map<string, vector<pair<int, ClientRole>>> clients;
 };
 
 

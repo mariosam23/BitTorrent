@@ -11,6 +11,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <mpi.h>
+#include <random>
+
 #include "utils.h"
 
 
@@ -26,7 +28,7 @@ struct download_thread_args {
 
 struct upload_thread_args {
 	int rank;
-	unordered_map<filename, vector<segment>> owned_filenames_segments;
+	unordered_map<filename, vector<segment>> owned_filenames_hashes;
 };
 
 // void read_file(const int& rank);

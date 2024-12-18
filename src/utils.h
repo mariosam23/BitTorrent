@@ -1,6 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+using namespace std;
+
+enum ClientRole {
+	PEER,
+	SEED
+};
 
 #define TRACKER_RANK 0
 #define MAX_FILES 10

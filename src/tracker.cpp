@@ -9,44 +9,40 @@ file_swarms_info receive_initial_data(const int numtasks)
         int num_files;
         MPI_Recv(&num_files, 1, MPI_INT, i, PEER_SEND_DATA_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        cout << "Tracker received " << num_files << " files from peer " << i << "\n";
+        // cout << "Tracker received " << num_files << " files from peer " << i << "\n";
 
         for (int j = 0; j < num_files; j++) {
             char filename[MAX_FILENAME];
             MPI_Recv(filename, MAX_FILENAME, MPI_CHAR, i, PEER_SEND_DATA_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+            string filename_str(filename);
+
             int num_segments;
             MPI_Recv(&num_segments, 1, MPI_INT, i, PEER_SEND_DATA_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            cout << "Tracker received " << num_segments << " segments for file " << filename << " from peer " << i << "\n";
+            // cout << "Tracker received " << num_segments << " segments for file " << filename << " from peer " << i << "\n";
 
-            vector<segment_data>& segments = file_swarms.file_segments[filename];
+            vector<string>& hashes = file_swarms.file_hashes[filename_str];
 
             for (int k = 0; k < num_segments; k++) {
-                char segment[HASH_SIZE];
+                char segment[HASH_SIZE + 1];
                 MPI_Recv(segment, HASH_SIZE, MPI_CHAR, i, PEER_SEND_DATA_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 segment[HASH_SIZE] = '\0';
 
-                segment_data segment_data;
-                segment_data.hash = segment;
-                segment_data.clients[i] = SEED;
-
-                if (segments.empty()) {
-                    segments.push_back(segment_data);
-                } else {
-                    bool found = false;
-                    for (auto& segment : segments) {
-                        if (segment.hash == segment_data.hash) {
-                            segment.clients[i] = SEED;
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found) {
-                        segments.push_back(segment_data);
+                string segment_hash(segment);
+                
+                bool found = false;
+                for (const auto& hash : hashes) {
+                    if (hash == segment_hash) {
+                        found = true;
+                        break;
                     }
                 }
+                if (!found) {
+                    hashes.push_back(segment_hash);
+                }
+
+                file_swarms.clients[filename_str].push_back(make_pair(i, SEED));
             }
         }
     }
@@ -64,18 +60,19 @@ void send_swarm_info(file_swarms_info& file_swarms) {
     MPI_Recv(filename, MAX_FILENAME, MPI_CHAR, MPI_ANY_SOURCE, SWARM_INFO_TAG, MPI_COMM_WORLD, &status);
     filename[MAX_FILENAME - 1] = '\0';
 
-    int num_segments = file_swarms.file_segments[filename].size();
-    MPI_Send(&num_segments, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+    int num_hashes = file_swarms.file_hashes[filename].size();
+    MPI_Send(&num_hashes, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
 
-    for (const auto& segment : file_swarms.file_segments[filename]) {
-        MPI_Send(segment.hash.c_str(), HASH_SIZE, MPI_CHAR, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+    for (const auto& hash : file_swarms.file_hashes[filename]) {
+        MPI_Send(hash.c_str(), HASH_SIZE, MPI_CHAR, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+    }
 
-        int num_clients = segment.clients.size();
-        MPI_Send(&num_clients, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+    int num_clients = file_swarms.clients[filename].size();
+    MPI_Send(&num_clients, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
 
-        for (const auto& client : segment.clients) {
-            MPI_Send(&client, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
-        }
+    for (const auto& [client, role] : file_swarms.clients[filename]) {
+        MPI_Send(&client, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+        MPI_Send(&role, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
     }
 }
 
@@ -111,7 +108,7 @@ void tracker(int numtasks, int rank)
 {
     file_swarms_info file_swarms = receive_initial_data(numtasks);
 
-    cout << "\nTracker received initial data from all peers\n";
+    // cout << "\nTracker received initial data from all peers\n";
 
     bool all_peers_finished_downloads = false;
     int clients = 0;
