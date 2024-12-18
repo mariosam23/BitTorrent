@@ -58,8 +58,6 @@ void send_data_to_tracker(const int& rank,
 		}
 	}
 
-	// cout << "Peer " << rank << " sent data to tracker. Now waiting for response...\n";
-
 	char tracker_response_msg[4];
 	MPI_Bcast(tracker_response_msg, 4, MPI_CHAR, TRACKER_RANK, MPI_COMM_WORLD);
 
@@ -119,6 +117,8 @@ int chose_uniform_random_peer(const vector<int>& peers, const int last_chosen, c
 	while (chosen == last_chosen || chosen == my_rank) {
 		chosen = dis(gen);
 		steps++;
+
+		// if last_chosen is the only peer available, return it
 		if (steps > 10) {
 			return last_chosen;
 		}
@@ -141,7 +141,6 @@ void *download_thread_func(void *arg)
 	int tag = PEER_FINISHED_ALL_DOWNLOADS_TAG;
 	MPI_Send(&tag, 1, MPI_INT, TRACKER_RANK, PEER_TO_TRACKER_MSG_TAG, MPI_COMM_WORLD);
 
-	// MPI_Recv(&tag, 1, MPI_INT, TRACKER_RANK, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
     return NULL;
@@ -153,6 +152,11 @@ void *upload_thread_func(void *arg)
 	upload_thread_args *args = (upload_thread_args*) arg;
 	int rank = args->rank;
 	auto owned_filenames_hashes = args->owned_filenames_hashes;
+
+
+
+	// wait for all peers to finish downloads
+	MPI_Recv(NULL, 0, MPI_INT, TRACKER_RANK, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     return NULL;
 }

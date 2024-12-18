@@ -3,6 +3,5 @@
 /checker
 /docker-compose.yml
 /run_with_docker.sh
-./src/*.txt
-*.txt
+
 
