@@ -18,10 +18,7 @@ using namespace std;
 
 
 
-struct file_swarms_info {
-	unordered_map<string, vector<string>> file_hashes;
-    unordered_map<string, vector<pair<int, ClientRole>>> clients;
-};
+
 
 
 void tracker(int numtasks, int rank);

@@ -3,10 +3,9 @@
 
 using namespace std;
 
-enum ClientRole {
-	PEER,
-	SEED
-};
+#include <unordered_map>
+#include <vector>
+#include <string>
 
 #define TRACKER_RANK 0
 #define MAX_FILES 10
@@ -28,5 +27,17 @@ constexpr auto REQUEST_SEGMENT_TAG = 9;
 constexpr auto PEER_TO_TRACKER_MSG_TAG = 10;
 constexpr auto SEND_SWARM_INFO_TAG = 11;
 constexpr auto PEER_REQUEST_TAG = 12;
+constexpr auto NACK_TAG = 13;
+
+
+enum ClientRole {
+	PEER,
+	SEED
+};
+
+struct file_swarms_info {
+	unordered_map<string, vector<string>> file_hashes;
+    unordered_map<string, vector<pair<int, ClientRole>>> clients;
+};
 
 #endif
