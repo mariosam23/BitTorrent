@@ -24,8 +24,9 @@ constexpr auto FINISHED_FILE_DOWNLOAD_TAG = 5;
 constexpr auto PEER_FINISHED_ALL_DOWNLOADS_TAG = 6;
 constexpr auto ALL_PEERS_FINISHED_DOWNLOADS_TAG = 7;
 constexpr auto FINALIZE_EXECUTION_TAG = 8;
-constexpr auto REQUEST_TAG = 9;
+constexpr auto REQUEST_SEGMENT_TAG = 9;
 constexpr auto PEER_TO_TRACKER_MSG_TAG = 10;
 constexpr auto SEND_SWARM_INFO_TAG = 11;
+constexpr auto PEER_REQUEST_TAG = 12;
 
 #endif

@@ -1,5 +1,10 @@
 #include "peer.h"
 
+#include <mutex>
+
+unordered_set<string> owned_segments;
+mutex owned_segments_mutex;
+
 
 pair<unordered_set<filename>, unordered_map<filename, vector<string>>>
 read_file(const int& rank)
@@ -23,6 +28,7 @@ read_file(const int& rank)
 			string hash;
 			peer_file >> hash;
 			owned_filenames_hashes[filename].push_back(hash);
+			owned_segments.insert(hash);
 		}
 	}
 
@@ -154,9 +160,23 @@ void *upload_thread_func(void *arg)
 	auto owned_filenames_hashes = args->owned_filenames_hashes;
 
 
+	while (true) {
+		int tag;
+		MPI_Status status;
+		MPI_Recv(&tag, 1, MPI_INT, MPI_ANY_SOURCE, PEER_REQUEST_TAG, MPI_COMM_WORLD, &status);
+	
+		switch (tag) {
+			// case REQUEST_SEGMENT_TAG: {
+
+			// }
+			case ALL_PEERS_FINISHED_DOWNLOADS_TAG: {
+				return NULL;
+			}
+		}
+	}
 
 	// wait for all peers to finish downloads
-	MPI_Recv(NULL, 0, MPI_INT, TRACKER_RANK, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	// MPI_Recv(NULL, 0, MPI_INT, TRACKER_RANK, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     return NULL;
 }

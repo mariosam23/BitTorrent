@@ -97,8 +97,9 @@ void handle_peer_finished_all_downloads()
 
 void handle_all_peers_finished_downloads(const int numtasks)
 {
+    int tag = ALL_PEERS_FINISHED_DOWNLOADS_TAG;
     for (int i = 1; i < numtasks; i++) {
-        MPI_Send(NULL, 0, MPI_INT, i, ALL_PEERS_FINISHED_DOWNLOADS_TAG, MPI_COMM_WORLD);
+        MPI_Send(&tag, 1, MPI_INT, i, PEER_REQUEST_TAG, MPI_COMM_WORLD);
     }
 }
 
@@ -126,21 +127,13 @@ void tracker(int numtasks, int rank)
             case UPDATE_SWARM_INFO_TAG:
                 update_swarm_info(file_swarms, status.MPI_SOURCE);
                 break;
-            // case FINISHED_FILE_DOWNLOAD_TAG:
-            //     handle_finished_file_download();
-            //     break;
             case PEER_FINISHED_ALL_DOWNLOADS_TAG:
-                // change_role_to_seed(status.MPI_SOURCE);
                 clients++;
                 if (clients == numtasks - 1) {
                     handle_all_peers_finished_downloads(numtasks);
                     all_peers_finished_downloads = true;
                 }
                 break;
-            // case ALL_PEERS_FINISHED_DOWNLOADS_TAG:
-            //     handle_all_peers_finished_downloads(numtasks);
-            //     all_peers_finished_downloads = true;
-            //     break;
             default:
                 cout << "Invalid tag\n";
                 break;
