@@ -177,7 +177,9 @@ void *download_thread_func(void *arg)
 
 		int last_chosen = -1;
 
-		for (const auto& hash : hashes) {
+		for (int i = 0; i < hashes.size(); ++i) {
+			string hash = hashes[i];
+
 			int chosen_peer = chose_uniform_random_peer(clients_ranks, last_chosen, rank);
 			last_chosen = chosen_peer;
 			int tag = REQUEST_SEGMENT_TAG;
@@ -192,6 +194,8 @@ void *download_thread_func(void *arg)
 				owned_segments.insert(hash);
 				owned_segments_mutex.unlock();
 				filename_achieved_segments[file].push_back(hash);
+			} else {
+				i--;
 			}
 		}
 
