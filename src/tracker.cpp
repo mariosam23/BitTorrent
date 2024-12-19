@@ -93,7 +93,16 @@ void send_swarm_info(file_swarms_info& file_swarms) {
 
 void update_swarm_info(file_swarms_info& file_swarms, const int source_rank)
 {
+	char filename[MAX_FILENAME];
+	MPI_Recv(filename, MAX_FILENAME, MPI_CHAR, source_rank, UPDATE_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	filename[MAX_FILENAME - 1] = '\0';
 
+	int num_clients = file_swarms.clients[filename].size();
+	MPI_Send(&num_clients, 1, MPI_INT, source_rank, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+
+	for (const auto& [client, role] : file_swarms.clients[filename]) {
+		MPI_Send(&client, 1, MPI_INT, source_rank, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
+	}
 }
 
 

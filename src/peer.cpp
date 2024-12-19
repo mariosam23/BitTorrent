@@ -152,6 +152,27 @@ void save_file(const int rank, const filename& downloaded_file, const vector<str
 }
 
 
+vector<int> request_update_swarm_info(const int rank, const filename& filename)
+{
+	int tag = UPDATE_SWARM_INFO_TAG;
+	MPI_Send(&tag, 1, MPI_INT, TRACKER_RANK, PEER_TO_TRACKER_MSG_TAG, MPI_COMM_WORLD);
+
+	MPI_Send(filename.c_str(), MAX_FILENAME, MPI_CHAR, TRACKER_RANK, UPDATE_SWARM_INFO_TAG, MPI_COMM_WORLD);
+
+	int num_clients;
+	MPI_Recv(&num_clients, 1, MPI_INT, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+	vector<int> clients_ranks;
+	for (int i = 0; i < num_clients; ++i) {
+		int client_rank;
+		MPI_Recv(&client_rank, 1, MPI_INT, TRACKER_RANK, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		clients_ranks.push_back(client_rank);
+	}
+
+	return clients_ranks;
+}
+
+
 void *download_thread_func(void *arg)
 {
 	download_thread_args *args = (download_thread_args*) arg;
@@ -173,6 +194,11 @@ void *download_thread_func(void *arg)
 		int last_chosen = -1;
 
 		for (size_t i = 0; i < hashes.size(); ++i) {
+			if (i % MAX_FILES == 0) {
+				clients_ranks.clear();
+				clients_ranks = request_update_swarm_info(rank, file);
+			}
+
 			string hash = hashes[i];
 
 			int chosen_peer = chose_uniform_random_peer(clients_ranks, last_chosen, rank);
@@ -185,11 +211,10 @@ void *download_thread_func(void *arg)
 			MPI_Recv(&tag, 1, MPI_INT, chosen_peer, ACK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 			if (tag == ACK_TAG) {
-				// owned_segments_mutex.lock();
 				owned_segments.insert(hash);
-				// owned_segments_mutex.unlock();
 				filename_achieved_segments[file].push_back(hash);
 			} else {
+				// try again
 				i--;
 			}
 		}
@@ -214,13 +239,11 @@ void send_segment_to_peer(const int& peer_rank)
 	MPI_Recv(segment, HASH_SIZE, MPI_CHAR, peer_rank, REQUEST_SEGMENT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
-	// owned_segments_mutex.lock();
 	int tag = ACK_TAG;
 	if (owned_segments.find(segment) != owned_segments.end()) {
 		cout << "NOT FOUND << \n";
 		tag = NACK_TAG;
 	}
-	// owned_segments_mutex.unlock();
 
 	MPI_Send(&tag, 1, MPI_INT, peer_rank, ACK_TAG, MPI_COMM_WORLD);
 }
