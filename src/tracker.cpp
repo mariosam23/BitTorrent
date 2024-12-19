@@ -42,8 +42,20 @@ file_swarms_info receive_initial_data(const int numtasks)
                     hashes.push_back(segment_hash);
                 }
 
-                file_swarms.clients[filename_str].push_back(make_pair(i, SEED));
-            }
+				found = false;
+
+				for (const auto& [client, role] : file_swarms.clients[filename_str]) {
+					if (client == i) {
+						found = true;
+						break;
+					}
+				}
+
+				if (!found) {
+					file_swarms.clients[filename_str].push_back(make_pair(i, SEED));
+				}
+
+			}
         }
     }
 
@@ -74,6 +86,8 @@ void send_swarm_info(file_swarms_info& file_swarms) {
         MPI_Send(&client, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
         MPI_Send(&role, 1, MPI_INT, status.MPI_SOURCE, SEND_SWARM_INFO_TAG, MPI_COMM_WORLD);
     }
+
+	file_swarms.clients[filename].push_back(make_pair(status.MPI_SOURCE, PEER));
 }
 
 
@@ -99,14 +113,13 @@ void tracker(int numtasks, int rank)
     // cout << "\nTracker received initial data from all peers\n";
 
     bool all_peers_finished_downloads = false;
-    int clients = 0;
+    int satisfied_clients = 0;
 
     while (!all_peers_finished_downloads) {
         MPI_Status status;
         int tag;
 
         MPI_Recv(&tag, 1, MPI_INT, MPI_ANY_SOURCE, PEER_TO_TRACKER_MSG_TAG, MPI_COMM_WORLD, &status);
-        int source = status.MPI_SOURCE;
 
         switch (tag) {
             case SWARM_INFO_TAG:
@@ -115,28 +128,16 @@ void tracker(int numtasks, int rank)
             case UPDATE_SWARM_INFO_TAG:
                 update_swarm_info(file_swarms, status.MPI_SOURCE);
                 break;
-            // case FINISHED_FILE_DOWNLOAD_TAG:
-            //     handle_finished_file_download();
-            //     break;
             case PEER_FINISHED_ALL_DOWNLOADS_TAG:
-                // change_role_to_seed(status.MPI_SOURCE);
-                clients++;
-                if (clients == numtasks - 1) {
+                satisfied_clients++;
+                if (satisfied_clients == numtasks - 1) {
                     handle_all_peers_finished_downloads(numtasks);
                     all_peers_finished_downloads = true;
                 }
                 break;
-            // case ALL_PEERS_FINISHED_DOWNLOADS_TAG:
-            //     handle_all_peers_finished_downloads(numtasks);
-            //     all_peers_finished_downloads = true;
-            //     break;
             default:
                 cout << "Invalid tag\n";
                 break;
-        }
-
-        if (clients == numtasks - 1) {
-            break;
         }
     }
 }

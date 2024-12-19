@@ -109,16 +109,11 @@ file_swarms_info receive_file_swarms_info
 		}
 	}
 
-
 	return received_file_swarms_info;
 }
 
 
 int chose_uniform_random_peer(const vector<int>& peers, int last_chosen, const int my_rank) {
-    if (peers.empty()) {
-        throw std::runtime_error("No valid peers available to choose from.");
-    }
-
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, peers.size() - 1);
@@ -177,7 +172,7 @@ void *download_thread_func(void *arg)
 
 		int last_chosen = -1;
 
-		for (int i = 0; i < hashes.size(); ++i) {
+		for (size_t i = 0; i < hashes.size(); ++i) {
 			string hash = hashes[i];
 
 			int chosen_peer = chose_uniform_random_peer(clients_ranks, last_chosen, rank);
@@ -190,9 +185,9 @@ void *download_thread_func(void *arg)
 			MPI_Recv(&tag, 1, MPI_INT, chosen_peer, ACK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 			if (tag == ACK_TAG) {
-				owned_segments_mutex.lock();
+				// owned_segments_mutex.lock();
 				owned_segments.insert(hash);
-				owned_segments_mutex.unlock();
+				// owned_segments_mutex.unlock();
 				filename_achieved_segments[file].push_back(hash);
 			} else {
 				i--;
@@ -218,10 +213,11 @@ void send_segment_to_peer(const int& peer_rank)
 	char segment[HASH_SIZE];
 	MPI_Recv(segment, HASH_SIZE, MPI_CHAR, peer_rank, REQUEST_SEGMENT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+
 	// owned_segments_mutex.lock();
 	int tag = ACK_TAG;
 	if (owned_segments.find(segment) != owned_segments.end()) {
-		cout << "NOT FOUND\n";
+		cout << "NOT FOUND << \n";
 		tag = NACK_TAG;
 	}
 	// owned_segments_mutex.unlock();
@@ -233,7 +229,6 @@ void send_segment_to_peer(const int& peer_rank)
 void *upload_thread_func(void *arg)
 {
 	upload_thread_args *args = (upload_thread_args*) arg;
-	int rank = args->rank;
 	auto owned_filenames_hashes = args->owned_filenames_hashes;
 
 
