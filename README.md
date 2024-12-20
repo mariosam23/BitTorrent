@@ -1,1 +1,0 @@
-Nu uita sa inlocuiesti mutex din c++11 cu pthreads!!!!
