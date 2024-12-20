@@ -1,10 +1,6 @@
 #include "peer.h"
 
-#include <mutex>
-
 unordered_set<string> owned_segments;
-mutex owned_segments_mutex;
-
 
 pair<unordered_set<filename>, unordered_map<filename, vector<string>>>
 read_file(const int& rank)
@@ -128,7 +124,7 @@ int chose_uniform_random_peer(const vector<int>& peers, int last_chosen, const i
 
         steps++;
 
-        // If no valid peer is found after a reasonable number of attempts, fallback to last chosen
+        // If no valid peer is found after a reasonable number of attempts
         if (steps > 10) {
             return last_chosen >= 0 ? last_chosen : peers[0];
         }
@@ -138,14 +134,14 @@ int chose_uniform_random_peer(const vector<int>& peers, int last_chosen, const i
 }
 
 
-void save_file(const int rank, const filename& downloaded_file, const vector<string>& hashes)
+void save_file(const int rank, const filename& downloaded_file, const vector<string>& segments)
 {
 	string filename = "client" + to_string(rank) + "_" + downloaded_file;
 	ofstream file(filename);
 	assert(file.is_open() && "Error opening file");
 
-	for (const auto& hash : hashes) {
-		file << hash << "\n";
+	for (const auto& segment : segments) {
+		file << segment << "\n";
 	}
 
 	file.close();
